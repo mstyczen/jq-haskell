@@ -30,11 +30,11 @@ license:             BSD3
 license-file:        LICENSE
 
 -- The package author(s).
-author:              Your Name
+author:              Maciej Styczeń
 
 -- An email address to which users can send suggestions, bug reports, and
 -- patches.
-maintainer:          youremail@tudelft.nl
+maintainer:          m.styczen@tudelft.nl
 
 -- A copyright notice.
 -- copyright:
@@ -63,9 +63,9 @@ library
 
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.12 && <4.15
-                       -- Uncomment if needed:
-                       -- , containers >= 0.5.11 && < 0.7
-                       -- , QuickCheck >= 2.13.2 && < 2.15
+                      --  Uncomment if needed:
+                       , containers >= 0.5.11 && < 0.7
+                       , QuickCheck >= 2.13.2 && < 2.15
 
   -- Directories containing source files.
   hs-source-dirs:      src
