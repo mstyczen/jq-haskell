@@ -51,12 +51,44 @@ compile EmptyIteratorOpt (JArray arr) = Right arr
 compile EmptyIteratorOpt (JObj xs) = Right [snd x | x <- xs]
 compile EmptyIteratorOpt _ = Left "Empty iterator operator applied to a non-array/dict argument."
 
+-- comma and pipe
+compile (Comma fs) argument = concatenateResults [compile f argument | f <- fs]
+compile (Pipe fs) argument = applySequentially fs [argument]
+
+-- parenthesis
+compile (Parenthesis f) argument = compile f argument
 
 run :: JProgram [JSON] -> JSON -> Either String [JSON]
 run p j = p j
 
 
 -- helper functions
+applySequentially :: [Filter] -> [JSON] -> Either String [JSON]
+applySequentially [] arguments = Right arguments
+-- applySequentially [f] arguments = convertToSingle [compile f argument | argument <- arguments]
+applySequentially (f:fs) arguments = case convertToSingle [compile f argument | argument <- arguments] of
+    Left err -> Left err
+    Right [] -> Right []
+    Right xs ->  applySequentially fs xs 
+
+convertToSingle :: [Either String [JSON]] -> Either String [JSON]
+convertToSingle [] = Right []
+convertToSingle (x:xs) = case x of 
+    Left err -> Left err
+    Right v -> case convertToSingle(xs) of
+        Left err2 -> Left err2
+        Right vs -> Right (v ++ vs)                    
+
+
+concatenateResults :: [Either String [JSON]] -> Either String [JSON]
+concatenateResults [] = Right []
+concatenateResults (x:xs) = case concatenateResults xs of 
+    Left error1 -> Left error1
+    Right ys -> case x of 
+        Left error2 -> Left error2
+        Right y -> Right (y ++ ys)
+
+
 dictLookup :: String -> [(String, JSON)] -> JSON
 dictLookup _ [] = JNull
 dictLookup field (x:xs) = if show field == show (fst x) then snd x else dictLookup field xs
@@ -78,7 +110,7 @@ slice from to xs =
 
 
 getByIndices :: [Int] -> [JSON] -> [JSON]
-getByIndices indices xs = map (\i -> getByIndex xs i) indices
+getByIndices indices xs = map (getByIndex xs) indices
 
 getByIndex :: [JSON] -> Int -> JSON 
 getByIndex arr index = 

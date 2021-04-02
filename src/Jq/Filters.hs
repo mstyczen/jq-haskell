@@ -8,6 +8,8 @@ data Filter = Identity
   | EmptyIterator | EmptyIteratorOpt
   | ArrayIterator [Int] | ArrayIteratorOpt [Int]
   | ObjectValueIterator [String] | ObjectValueIteratorOpt [String]
+  | Comma [Filter] | Pipe [Filter]
+  | Parenthesis Filter
 
 
 instance Show Filter where

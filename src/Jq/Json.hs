@@ -3,7 +3,7 @@ module Jq.Json where
 import Data.List
 
 data JSON =
-    JNull | JNumber Float | JString String | JBoolean Bool | JObj [(String, JSON)] | JArray [JSON] 
+    JNull | JNumber Float | JString String | JBoolean Bool | JObj [(String, JSON)] | JArray [JSON]
 
 instance Show JSON where
   -- adapted from "Pretty printing JSON data" exercise on weblab

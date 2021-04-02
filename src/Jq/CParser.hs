@@ -4,10 +4,68 @@ import Parsing.Parsing
 import Jq.Filters
 import Jq.JParser
 
+parseFilter :: Parser Filter
+parseFilter = parsePipe <|> parseComma <|> parseFilterNoPipeComma
+
+parseFilterNoComma :: Parser Filter
+parseFilterNoComma = parsePipeNoComma <|> parseFilterNoPipeComma
+
+parseFilterNoPipe :: Parser Filter
+parseFilterNoPipe = parseCommaNoPipe <|> parseFilterNoPipeComma
+
+parseFilterNoPipeComma :: Parser Filter 
+parseFilterNoPipeComma = parseParenthesis <|>
+  parseEmptyIteratorOpt <|> parseEmptyIterator <|>
+  parseObjectValueIteratorOpt <|> parseObjectValueIterator <|> 
+  parseArrayIteratorOpt <|> parseArrayIterator <|>
+  parseArraySliceOpt <|> parseArraySlice 
+  <|> parseArrayIndexOpt <|> parseArrayIndex 
+  <|> parseOptIndex <|> parseIndex 
+  <|> parseIdentity
+
 parseIdentity :: Parser Filter
 parseIdentity = do
   _ <- token . char $ '.'
   return Identity
+
+parseParenthesis :: Parser Filter
+parseParenthesis = do
+  _ <- symbol "("
+  f <- parseFilter
+  _ <- symbol ")"
+  return (Parenthesis f)
+
+parseComma :: Parser Filter 
+parseComma = do
+  x <- parseFilterNoComma
+  xs <- some (do 
+     _ <- symbol "," 
+     parseFilterNoComma)
+  return (Comma (x:xs))
+
+parseCommaNoPipe :: Parser Filter 
+parseCommaNoPipe = do
+  x <- parseFilterNoPipeComma
+  xs <- some (do 
+     _ <- symbol "," 
+     parseFilterNoPipeComma)
+  return (Comma (x:xs))
+
+parsePipe :: Parser Filter
+parsePipe = do
+  x <- parseFilterNoPipe
+  xs <- some (do 
+     _ <- symbol "|" 
+     parseFilterNoPipe)
+  return (Pipe (x:xs))
+
+parsePipeNoComma :: Parser Filter
+parsePipeNoComma = do
+  x <- parseFilterNoPipeComma
+  xs <- some (do 
+     _ <- symbol "|" 
+     parseFilterNoPipeComma)
+  return (Pipe (x:xs))
 
 parseIndex :: Parser Filter
 parseIndex = do
@@ -45,7 +103,7 @@ parseArraySliceOpt = do
 parseGenericIndex :: Parser String 
 parseGenericIndex = do
   _ <- string ".["
-  name <- many (sat (/= ']'))
+  name <- some (sat (/= ']'))
   _ <- symbol "]"
   return name
 
@@ -85,15 +143,6 @@ parseObjectValueIteratorOpt = do
   keys <- parseObjectValueIteratorKeys
   _ <- symbol "?"
   return (ObjectValueIteratorOpt keys)
-
-parseFilter :: Parser Filter
-parseFilter = parseEmptyIteratorOpt <|> parseEmptyIteratorOpt <|>
-  parseObjectValueIteratorOpt <|> parseObjectValueIterator <|> 
-  parseArrayIteratorOpt <|> parseArrayIterator <|>
-  parseArraySliceOpt <|> parseArraySlice 
-  <|> parseArrayIndexOpt <|> parseArrayIndex 
-  <|> parseOptIndex <|> parseIndex 
-  <|> parseIdentity
 
 parseConfig :: [String] -> Either String Config
 parseConfig s = case s of
