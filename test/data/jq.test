@@ -37,6 +37,11 @@ null
 {"foo": {"bar": 20}}
 20
 
+# unicode
+.
+"\u007b"
+"{"
+
 
 # Arrays
 

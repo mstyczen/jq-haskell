@@ -42,12 +42,13 @@ parseEscape = do
 parseOtherEsc :: Parser Char
 parseOtherEsc = do
     x <- item
-    case x of
-        'n' -> return ('\n')
-        't' -> return ('\t')
-        'r' -> return ('\r')
-        'f' -> return ('\f')
-        'b' -> return ('\b')
+    return (fst $ head $ readLitChar ("\\"++[x]))
+    -- case x of
+    --     'n' -> return ('\n')
+    --     't' -> return ('\t')
+    --     'r' -> return ('\r')
+    --     'f' -> return ('\f')
+    --     'b' -> return ('\b')
         
 parseUnicode :: Parser Char
 parseUnicode = do
@@ -59,7 +60,7 @@ parseUnicode = do
     return (fst $ head $ readLitChar ("\\" ++ show (read ("0x" ++ [d1,d2,d3,d4]) :: Int)))
 
 parseHexDigit :: Parser Char
-parseHexDigit = sat (`elem` ['a', 'b', 'c', 'd', 'e', 'f']) <|> digit
+parseHexDigit = sat (`elem` "abcdefABCDEF") <|> digit
 
 parseJBoolean :: Parser JSON 
 parseJBoolean = do 
