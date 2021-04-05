@@ -15,9 +15,9 @@ instance Show JSON where
   show (JString x) = showMyString ("\"" ++ x ++ "\"")
   show (JBoolean True) = "true"
   show (JBoolean False) = "false"
-  show (JArray x) = "[" ++ values x ++ "]" where
+  show (JArray x) = "[\n " ++ values x ++ "\n]" where
     values [] = ""
-    values xs = intercalate "," (map show xs)
+    values xs = intercalate ",\n " (map show xs)
 
   show (JObj x) = "{"++ renderList x ++ "}" where
     renderList ys = intercalate "," ([show (fst y) ++ ":" ++ show (snd y) | y <- ys])
