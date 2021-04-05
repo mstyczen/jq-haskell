@@ -30,36 +30,33 @@ parseEmptyJArray = do
 parseString :: Parser String 
 parseString = do
     _ <- symbol "\""
-    ss <- many (parseEscape <|> parseNormalString)
+    s <- many (parseEscape <|> sat (\x -> x /= '"' && x /= '\\'))
     _ <- symbol "\""
-    return (concat ss)
+    return s
 
-parseNormalString :: Parser String
-parseNormalString = some (sat (\x -> x /= '"' && x /= '\\'))
-
-parseEscape :: Parser String
+parseEscape :: Parser Char
 parseEscape = do
     _ <- char '\\'
     parseUnicode <|> parseOtherEsc
 
-parseOtherEsc :: Parser String
+parseOtherEsc :: Parser Char
 parseOtherEsc = do
     x <- item
     case x of
-        'n' -> return ("\n")
-        't' -> return ("\t")
-        'r' -> return ("\r")
-        'f' -> return ("\f")
-        'b' -> return ("\b")
+        'n' -> return ('\n')
+        't' -> return ('\t')
+        'r' -> return ('\r')
+        'f' -> return ('\f')
+        'b' -> return ('\b')
         
-parseUnicode :: Parser String
+parseUnicode :: Parser Char
 parseUnicode = do
     _ <- char 'u'
     d1 <- parseHexDigit
     d2 <- parseHexDigit
     d3 <- parseHexDigit
     d4 <- parseHexDigit
-    return [(fst $ head $ readLitChar ("\\" ++ show (read ("0x" ++ [d1,d2,d3,d4]) :: Int)))]
+    return (fst $ head $ readLitChar ("\\" ++ show (read ("0x" ++ [d1,d2,d3,d4]) :: Int)))
 
 parseHexDigit :: Parser Char
 parseHexDigit = sat (`elem` ['a', 'b', 'c', 'd', 'e', 'f']) <|> digit
