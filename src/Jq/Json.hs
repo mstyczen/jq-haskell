@@ -15,12 +15,12 @@ instance Show JSON where
   show (JString x) = showMyString ("\"" ++ x ++ "\"")
   show (JBoolean True) = "true"
   show (JBoolean False) = "false"
-  show (JArray x) = "[\n " ++ values x ++ "\n]" where
+  show (JArray x) = "[\n  " ++ values x ++ "\n]" where
     values [] = ""
-    values xs = intercalate ",\n " (map show xs)
+    values xs = intercalate ",\n  " (map show xs)
 
-  show (JObj x) = "{"++ renderList x ++ "}" where
-    renderList ys = intercalate "," ([show (fst y) ++ ":" ++ show (snd y) | y <- ys])
+  show (JObj x) = "{\n  "++ renderList x ++ "\n}" where
+    renderList ys = intercalate ",\n  " ([show (fst y) ++ ":" ++ show (snd y) | y <- ys])
 
 
 showMyString :: String -> String
