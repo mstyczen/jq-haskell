@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Jq.Json where
 
 import Data.List
@@ -15,14 +16,35 @@ instance Show JSON where
   show (JString x) = showMyString ("\"" ++ x ++ "\"")
   show (JBoolean True) = "true"
   show (JBoolean False) = "false"
-  show (JArray x) = "[\n  " ++ values x ++ "\n]" where
+  show (JArray xs) = showArray xs 1
+  show (JObj xs) = showDict xs 1
+
+
+showArray :: [JSON] -> Int -> String
+showArray [] _= "[]"
+showArray xs n =
+  "[\n" ++ spaces n ++ values xs ++ "\n" ++ spaces (n-1) ++ "]" where
     values [] = ""
-    values xs = intercalate ",\n  " (map show xs)
+    values arr = intercalate (",\n"++spaces n) (map (\x -> case x of
+      JArray vs -> showArray vs (n+1)
+      JObj vs -> showDict vs (n+1)
+      other -> show other) arr)
 
-  show (JObj x) = "{\n  "++ renderList x ++ "\n}" where
-    renderList ys = intercalate ",\n  " ([show (fst y) ++ ":" ++ show (snd y) | y <- ys])
+spaces :: Int -> [Char]
+spaces n = take (2*n) $ repeat ' '
 
-
+showDict :: [(String, JSON)] -> Int -> String
+showDict [] _ = "{}"
+showDict xs n = 
+  "{\n" ++ spaces n ++ kvpairs xs ++ "\n" ++ spaces (n-1) ++ "}" where
+    kvpairs [] = ""
+    kvpairs arr = intercalate (",\n"++spaces n) (map (\x -> 
+      show (fst x) ++ ": " ++
+      case snd x of
+        JArray vs -> showArray vs (n+1)
+        JObj vs -> showDict vs (n+1)
+        other -> show other) arr)
+  
 showMyString :: String -> String
 showMyString [] = []
 showMyString (x:xs) = if x < '\255' then showLitChar x (showMyString xs)

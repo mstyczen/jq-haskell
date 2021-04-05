@@ -29,10 +29,12 @@ compile (ArrayIndexOpt _) JNull = Right [JNull]
 compile (ArrayIndexOpt _) _ = return []
 
 compile (ArraySlice from to) (JArray arr) = Right [JArray (slice from to arr)]
+compile (ArraySlice from to) (JString str) = Right [JString (slice from to str)]
 compile (ArraySlice _ _) JNull = Right [JNull]
 compile (ArraySlice _ _) _ = Left "Array slicing operator applied to a non-array argument."
 
 compile (ArraySliceOpt from to) (JArray arr) = Right [JArray (slice from to arr)]
+compile (ArraySliceOpt from to) (JString str) = Right [JString (slice from to str)]
 compile (ArraySliceOpt _ _) JNull = Right [JNull]
 compile (ArraySliceOpt _ _) _ = return []
 
@@ -59,7 +61,7 @@ compile EmptyIterator _ = Left "Empty iterator operator applied to a non-array/d
 
 compile EmptyIteratorOpt (JArray arr) = Right arr
 compile EmptyIteratorOpt (JObj xs) = Right [snd x | x <- xs]
-compile EmptyIteratorOpt _ = Left "Empty iterator operator applied to a non-array/dict argument."
+compile EmptyIteratorOpt _ = Right []
 
 -- comma and pipe
 compile (Comma fs) argument = concatenateResults [compile f argument | f <- fs]
@@ -113,7 +115,7 @@ arrayLookup n arr = if index > length arr then JNull
     else arr !! index where 
         index = convIndex n arr
 
-slice :: Int -> Int -> [JSON] -> [JSON]
+slice :: Int -> Int -> [a] -> [a]
 slice from to xs =
     if convTo <= convFrom then []
     else take (end - start) (drop start xs)
