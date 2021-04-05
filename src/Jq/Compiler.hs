@@ -11,36 +11,46 @@ compile (Identity) inp = return [inp]
 
 -- dict indexing
 compile (Indexing field) (JObj elements) = Right [dictLookup field elements]
+compile (Indexing _) JNull = Right [JNull]
 compile (Indexing _) _ = Left "Dictionary indexing operator applied to a non-dict argument."
 
+
 compile (IndexingOpt field) (JObj elements) = Right [dictLookup field elements]
--- not sure if you should return null or empty list, but jqplay suggests that it should be empty list
+compile (IndexingOpt _) JNull = Right [JNull]
 compile (IndexingOpt _) _ = return []
 
 -- array indexing and slicing
 compile (ArrayIndex n) (JArray arr) = Right [arrayLookup n arr]
+compile (ArrayIndex _) JNull = Right [JNull]
 compile (ArrayIndex _) _ = Left "Array indexing operator applied to a non-array argument."
 
 compile (ArrayIndexOpt n) (JArray arr) = Right [arrayLookup n arr]
+compile (ArrayIndexOpt _) JNull = Right [JNull]
 compile (ArrayIndexOpt _) _ = return []
 
 compile (ArraySlice from to) (JArray arr) = Right [JArray (slice from to arr)]
+compile (ArraySlice _ _) JNull = Right [JNull]
 compile (ArraySlice _ _) _ = Left "Array slicing operator applied to a non-array argument."
 
 compile (ArraySliceOpt from to) (JArray arr) = Right [JArray (slice from to arr)]
+compile (ArraySliceOpt _ _) JNull = Right [JNull]
 compile (ArraySliceOpt _ _) _ = return []
 
 -- iterators
 compile (ArrayIterator indices) (JArray arr) = Right (getByIndices indices arr)
+compile (ArrayIterator indices) JNull = Right [JNull | _ <- [1..(length indices)]]
 compile (ArrayIterator _) _ = Left "Array iterator operator applied to a non-array argument."
 
 compile (ArrayIteratorOpt indices) (JArray arr) = Right (getByIndices indices arr)
+compile (ArrayIteratorOpt indices) JNull = Right [JNull | _ <- [1..(length indices)]]
 compile (ArrayIteratorOpt _) _ = return []
 
 compile (ObjectValueIterator keys) (JObj dict) = Right (getByKeys keys dict) 
+compile (ObjectValueIterator keys) JNull = Right [JNull | _ <- [1..(length keys)]]
 compile (ObjectValueIterator _) _ = Left "Object value iterator operator applied to a non-dict argument."
 
-compile (ObjectValueIteratorOpt keys) (JObj dict) = Right (getByKeys keys dict) 
+compile (ObjectValueIteratorOpt keys) (JObj dict) = Right (getByKeys keys dict)
+compile (ObjectValueIteratorOpt keys) JNull = Right [JNull | _ <- [1..(length keys)]] 
 compile (ObjectValueIteratorOpt _) _ = return []
 
 compile EmptyIterator (JArray arr) = Right arr
