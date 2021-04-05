@@ -5,7 +5,7 @@ import Jq.Filters
 import Jq.JParser
 
 parseFilter :: Parser Filter
-parseFilter = parseFArray <|> parsePipe <|> parseComma <|> parseFilterNoPipeComma
+parseFilter = parseJSONConstructor <|> parseFArray <|> parsePipe <|> parseComma <|> parseFilterNoPipeComma
 
 parseFilterNoComma :: Parser Filter
 parseFilterNoComma = parsePipeNoComma <|> parseFilterNoPipeComma
@@ -213,3 +213,8 @@ parseIdentifierIndex = do
   _ <- token . char $ '.'
   name <- ident <|> parseString
   return name
+
+parseJSONConstructor :: Parser Filter 
+parseJSONConstructor = do
+  json <- parseJSON
+  return (SimpleConstructor json) 

@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Jq.Filters where
-
+import Jq.Json ( JSON )
 data Filter = Identity 
   | Indexing String | IndexingOpt String 
   | ArrayIndex Int | ArrayIndexOpt Int
@@ -10,7 +10,7 @@ data Filter = Identity
   | ObjectValueIterator [String] | ObjectValueIteratorOpt [String]
   | Comma [Filter] | Pipe [Filter]
   | Parenthesis Filter | FArray Filter
-
+  | SimpleConstructor JSON
 
 instance Show Filter where
   show (Identity) = "identity ."

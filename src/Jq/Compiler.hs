@@ -75,6 +75,9 @@ compile (FArray f) argument = case compile f argument of
     Right x -> Right [JArray x]
     Left err -> Left err
 
+-- simple json constructor
+compile (SimpleConstructor json) _ = Right [json]
+
 run :: JProgram [JSON] -> JSON -> Either String [JSON]
 run p j = p j
 
