@@ -93,7 +93,7 @@ getProgram (Just s) filter i = do
 
 prettifyJSON :: String -> IO String
 prettifyJSON s = do
-  (Just stdin, Just stdout, _, p) <- createProcess $ shell $ "jq '.'"
+  (Just stdin, Just stdout, _, p) <- createProcess $ shell $ "jq --sort-keys \".\""
   hPutStr stdin s
   v <- hGetContents stdout
   waitForProcess p

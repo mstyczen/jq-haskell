@@ -13,7 +13,7 @@ null
 # Field access, piping
 #
 
-.foo
+.["foo"]
 {"foo": 42, "bar": 43}
 42
 

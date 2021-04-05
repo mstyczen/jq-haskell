@@ -2,6 +2,7 @@ module Jq.JParser where
 
 import Parsing.Parsing
 import Jq.Json
+import Data.Char
 
 -- define parsing for each
 parseJNull :: Parser JSON
@@ -15,12 +16,53 @@ parseJString = do
     s <- parseString
     return (JString s)
 
+parseEmptyJObj :: Parser JSON 
+parseEmptyJObj = do
+    _ <- string "{}"
+    return(JObj [])
+
+parseEmptyJArray :: Parser JSON 
+parseEmptyJArray = do
+    _ <- string "[]"
+    return (JArray [])
+
+
 parseString :: Parser String 
 parseString = do
     _ <- symbol "\""
-    s <- many (sat (/= '"'))
+    ss <- many (parseEscape <|> parseNormalString)
     _ <- symbol "\""
-    return s
+    return (concat ss)
+
+parseNormalString :: Parser String
+parseNormalString = some (sat (\x -> x /= '"' && x /= '\\'))
+
+parseEscape :: Parser String
+parseEscape = do
+    _ <- char '\\'
+    parseUnicode <|> parseOtherEsc
+
+parseOtherEsc :: Parser String
+parseOtherEsc = do
+    x <- item
+    case x of
+        'n' -> return ("\n")
+        't' -> return ("\t")
+        'r' -> return ("\r")
+        'f' -> return ("\f")
+        'b' -> return ("\b")
+        
+parseUnicode :: Parser String
+parseUnicode = do
+    _ <- char 'u'
+    d1 <- parseHexDigit
+    d2 <- parseHexDigit
+    d3 <- parseHexDigit
+    d4 <- parseHexDigit
+    return [(fst $ head $ readLitChar ("\\" ++ show (read ("0x" ++ [d1,d2,d3,d4]) :: Int)))]
+
+parseHexDigit :: Parser Char
+parseHexDigit = sat (`elem` ['a', 'b', 'c', 'd', 'e', 'f']) <|> digit
 
 parseJBoolean :: Parser JSON 
 parseJBoolean = do 
@@ -53,7 +95,7 @@ parseJScientific = do
     return (JNumber (read (show l ++ "." ++ show r ++ "e" ++ sign ++ show e)))
 
 parseJArray :: Parser JSON
-parseJArray = parseNonEmptyJArray 
+parseJArray = parseEmptyJArray <|> parseNonEmptyJArray 
 -- <|> parseEmptyJArray
 
 parseNonEmptyJArray :: Parser JSON
@@ -70,7 +112,7 @@ parseNonEmptyJArray = do
 -- parseEmptyJArray = ???
 
 parseJObj :: Parser JSON 
-parseJObj = parseNonEmptyJObj
+parseJObj = parseEmptyJObj <|> parseNonEmptyJObj
 -- <|> parseEmptyJObj
 
 parseNonEmptyJObj :: Parser JSON 

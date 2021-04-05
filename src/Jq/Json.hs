@@ -8,14 +8,15 @@ data JSON =
 instance Show JSON where
   -- adapted from "Pretty printing JSON data" exercise on weblab
   show JNull = "null"
-  show (JNumber x) = show x
-  show (JString x) = show x
+  show (JNumber x) = if x == fromInteger (round x)
+    then show (fromInteger(round x)) else show x
+
+  show (JString x) = x
   show (JBoolean True) = "true"
   show (JBoolean False) = "false"
   show (JArray x) = "[" ++ values x ++ "]" where
     values [] = ""
-    values xs = intercalate ", " (map show xs)
+    values xs = intercalate "," (map show xs)
 
   show (JObj x) = "{"++ renderList x ++ "}" where
-    renderList ys = intercalate ", " ([show (fst y) ++ ": " ++ show (snd y) | y <- ys])
-
+    renderList ys = intercalate "," ([show (fst y) ++ ":" ++ show (snd y) | y <- ys])

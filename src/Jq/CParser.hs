@@ -5,7 +5,7 @@ import Jq.Filters
 import Jq.JParser
 
 parseFilter :: Parser Filter
-parseFilter = parsePipe <|> parseComma <|> parseFilterNoPipeComma
+parseFilter = parseFArray <|> parsePipe <|> parseComma <|> parseFilterNoPipeComma
 
 parseFilterNoComma :: Parser Filter
 parseFilterNoComma = parsePipeNoComma <|> parseFilterNoPipeComma
@@ -14,7 +14,7 @@ parseFilterNoPipe :: Parser Filter
 parseFilterNoPipe = parseCommaNoPipe <|> parseFilterNoPipeComma
 
 parseFilterNoPipeComma :: Parser Filter 
-parseFilterNoPipeComma = parseParenthesis <|>
+parseFilterNoPipeComma = parseParenthesis <|> parseSugaredPipe <|>
   parseEmptyIteratorOpt <|> parseEmptyIterator <|>
   parseObjectValueIteratorOpt <|> parseObjectValueIterator <|> 
   parseArrayIteratorOpt <|> parseArrayIterator <|>
@@ -22,6 +22,19 @@ parseFilterNoPipeComma = parseParenthesis <|>
   <|> parseArrayIndexOpt <|> parseArrayIndex 
   <|> parseOptIndex <|> parseIndex 
   <|> parseIdentity
+
+parseFArray :: Parser Filter
+parseFArray = do
+  _ <- symbol "["
+  f <- parseFilter
+  _ <-symbol "]"
+  return (FArray f)
+
+parseSugaredPipe :: Parser Filter 
+parseSugaredPipe =  do
+    n <- parseOptIndex <|> parseIndex
+    ns <- some (parseOptIndex <|> parseIndex)
+    return (Pipe (n:ns))
 
 parseIdentity :: Parser Filter
 parseIdentity = do
@@ -103,7 +116,7 @@ parseArraySliceOpt = do
 parseGenericIndex :: Parser String 
 parseGenericIndex = do
   _ <- string ".["
-  name <- some (sat (/= ']'))
+  name <- parseString
   _ <- symbol "]"
   return name
 
@@ -198,5 +211,5 @@ parseArraySliceBounds = do
 parseIdentifierIndex :: Parser String 
 parseIdentifierIndex = do
   _ <- token . char $ '.'
-  name <- ident
+  name <- ident <|> parseString
   return name

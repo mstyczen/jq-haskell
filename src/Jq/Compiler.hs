@@ -58,6 +58,11 @@ compile (Pipe fs) argument = applySequentially fs [argument]
 -- parenthesis
 compile (Parenthesis f) argument = compile f argument
 
+-- FArray
+compile (FArray f) argument = case compile f argument of
+    Right x -> Right [JArray x]
+    Left err -> Left err
+
 run :: JProgram [JSON] -> JSON -> Either String [JSON]
 run p j = p j
 

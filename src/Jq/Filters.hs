@@ -9,7 +9,7 @@ data Filter = Identity
   | ArrayIterator [Int] | ArrayIteratorOpt [Int]
   | ObjectValueIterator [String] | ObjectValueIteratorOpt [String]
   | Comma [Filter] | Pipe [Filter]
-  | Parenthesis Filter
+  | Parenthesis Filter | FArray Filter
 
 
 instance Show Filter where
