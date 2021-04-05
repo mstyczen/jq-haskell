@@ -12,7 +12,7 @@ instance Show JSON where
   show (JNumber x) = if x == fromInteger (round x)
     then show (fromInteger(round x)) else show x
 
-  show (JString x) = showMyString x
+  show (JString x) = showMyString ("\"" ++ x ++ "\"")
   show (JBoolean True) = "true"
   show (JBoolean False) = "false"
   show (JArray x) = "[" ++ values x ++ "]" where
