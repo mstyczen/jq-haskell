@@ -25,6 +25,6 @@ instance Show JSON where
 
 showMyString :: String -> String
 showMyString [] = []
-showMyString (x:xs) = if x < ' ' then showLitChar x (showMyString xs)
+showMyString (x:xs) = if x < '\255' then showLitChar x (showMyString xs)
 else x : showMyString xs
 
