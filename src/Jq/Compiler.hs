@@ -71,12 +71,58 @@ compile (Pipe fs) argument = applySequentially fs [argument]
 compile (Parenthesis f) argument = compile f argument
 
 -- FArray
-compile (FArray f) argument = case compile f argument of
-    Right x -> Right [JArray x]
+compile (FArray f) argument = do
+    x <- compile f argument
+    return [JArray x]
+    
+    -- case compile f argument of
+    -- Right x -> Right [JArray x]
+    -- Left err -> Left err
+compile (SimpleConstructor json) _ = Right [json]
+-- FDict
+compile (FDict []) _ = Right [JObj []]
+compile (FDict (x:xs)) argument = do
+    keys <- compile keysFs argument
+    values <- compile valsFs argument
+    cartesian (kvpairs keys values) (compile (FDict xs) argument)
+    where
+        keysFs = fst x
+        valsFs = snd x
+
+cartesian :: Either String [JSON] -> Either String [JSON] -> Either String [JSON]
+cartesian mxs mys = do
+    xs <- mxs
+    ys <- mys
+    return [concatDict x y | x <-xs, y<-ys]
+
+
+kvpairs :: [JSON] -> [JSON] -> Either String [JSON]
+kvpairs keys values = case keysToStrings keys of
+    Right stringkeys -> Right [(JObj [(k,v)]) | k <- stringkeys, v <- values]
     Left err -> Left err
 
+-- kvFilterToObj :: [(JSON, JSON)] -> Either String [JSON]
+-- kvFilterToObj [] = Right []
+-- kvFilterToObj (x:xs) = case keysToStrings (fst x) of
+
+
+keysToStrings :: [JSON] -> Either String [String]
+keysToStrings [] = Right []
+keysToStrings (x:xs) = case x of 
+    JString s -> do 
+        ss <- keysToStrings xs
+        return (s:ss)
+    _ -> Left "non-string dict key"
+
+
+
+
+concatDict :: JSON -> JSON -> JSON
+concatDict (JObj x) (JObj y) = JObj (x ++ y)
+
 -- simple json constructor
-compile (SimpleConstructor json) _ = Right [json]
+
+
 
 run :: JProgram [JSON] -> JSON -> Either String [JSON]
 run p j = p j

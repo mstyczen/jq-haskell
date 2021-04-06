@@ -3,9 +3,10 @@ module Jq.CParser where
 import Parsing.Parsing
 import Jq.Filters
 import Jq.JParser
+import Jq.Json
 
 parseFilter :: Parser Filter
-parseFilter = parseJSONConstructor <|> parseFArray <|> parsePipe <|> parseComma <|> parseFilterNoPipeComma
+parseFilter =  parseJSONConstructor <|> parsePipe <|> parseComma <|> parseFilterNoPipeComma
 
 parseFilterNoComma :: Parser Filter
 parseFilterNoComma = parsePipeNoComma <|> parseFilterNoPipeComma
@@ -14,7 +15,7 @@ parseFilterNoPipe :: Parser Filter
 parseFilterNoPipe = parseCommaNoPipe <|> parseFilterNoPipeComma
 
 parseFilterNoPipeComma :: Parser Filter 
-parseFilterNoPipeComma = parseParenthesis <|> parseSugaredPipe <|>
+parseFilterNoPipeComma = parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseSugaredPipe <|>
   parseEmptyIteratorOpt <|> parseEmptyIterator <|>
   parseObjectValueIteratorOpt <|> parseObjectValueIterator <|> 
   parseArrayIteratorOpt <|> parseArrayIterator <|>
@@ -22,6 +23,27 @@ parseFilterNoPipeComma = parseParenthesis <|> parseSugaredPipe <|>
   <|> parseArrayIndexOpt <|> parseArrayIndex 
   <|> parseOptIndex <|> parseIndex 
   <|> parseIdentity
+
+parseFDict :: Parser Filter
+parseFDict = do
+  _ <- symbol "{"
+  kv <- parseOneKV
+  kvs <- many (do 
+     _ <- symbol "," 
+     parseOneKV)
+  _ <- symbol "}"
+  return (FDict (kv:kvs))
+
+parseOneKV :: Parser (Filter, Filter)
+parseOneKV = do
+  k <- parseFilter <|> do SimpleConstructor . JString <$> ident
+  _ <- symbol ":"
+  v <- parseFilter
+  return (k,v) 
+  <|> 
+  do
+  name <- ident <|> parseString
+  return (SimpleConstructor $ JString name, Indexing name)
 
 parseFArray :: Parser Filter
 parseFArray = do
@@ -202,9 +224,9 @@ parseArraySliceBounds :: Parser (Int, Int)
 parseArraySliceBounds = do
   _ <- token . char $ '.'
   _ <- symbol "["
-  from <- int
+  from <- int <|> return 0
   _ <- symbol ":"
-  to <- int
+  to <- int <|> return 2147483647
   _ <- symbol "]"
   return (from, to)
 

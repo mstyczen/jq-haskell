@@ -9,7 +9,7 @@ data Filter = Identity
   | ArrayIterator [Int] | ArrayIteratorOpt [Int]
   | ObjectValueIterator [String] | ObjectValueIteratorOpt [String]
   | Comma [Filter] | Pipe [Filter]
-  | Parenthesis Filter | FArray Filter
+  | Parenthesis Filter | FArray Filter | FDict [(Filter, Filter)]
   | SimpleConstructor JSON
 
 instance Show Filter where
