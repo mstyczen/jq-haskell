@@ -139,6 +139,18 @@ compile (If condition thenBranch elseBranch) argument = do
         (JBoolean False) -> elseValues
         _ -> thenValues) conditionValues
     
+-- and / or / not
+compile (And left right) argument = do
+    leftVs <- compile left argument
+    rightVs <- compile right argument
+    Right $ concat $ map (\x -> if not x then [JBoolean False] else [JBoolean v | v <- (map toBoolean rightVs)]) (map toBoolean leftVs)
+
+compile (Or left right) argument = do
+    leftVs <- compile left argument
+    rightVs <- compile right argument
+    Right $ concat $ map (\x -> if x then [JBoolean True] else [JBoolean v | v <- (map toBoolean rightVs)]) (map toBoolean leftVs)
+
+compile Not argument = return [(JBoolean (not $ toBoolean argument))]
 
 run :: JProgram [JSON] -> JSON -> Either String [JSON]
 run p j = p j

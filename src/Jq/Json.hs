@@ -77,3 +77,7 @@ showMyString [] = []
 showMyString (x:xs) = if x < '\255' then showLitChar x (showMyString xs)
 else x : showMyString xs
 
+toBoolean :: JSON -> Bool
+toBoolean JNull = False 
+toBoolean (JBoolean False) = False 
+toBoolean _ = True

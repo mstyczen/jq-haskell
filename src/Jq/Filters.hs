@@ -18,7 +18,7 @@ data Filter = Identity
   | If Filter Filter Filter
   | And Filter Filter
   | Or Filter Filter
-  | Not Filter
+  | Not
 instance Show Filter where
   show (Identity) = "identity ."
   -- show (Parenthesis) = "parenthesis ()"

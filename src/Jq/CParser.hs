@@ -29,12 +29,17 @@ parseFilterNoPipeComma :: Parser Filter
 parseFilterNoPipeComma = parseBinaryOp <|> parseFilterNoPipeCommaEquals
 
 parseFilterNoPipeCommaEquals :: Parser Filter 
-parseFilterNoPipeCommaEquals = parseIf <|> parseSugaredPipe <|> parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseRecDest <|> parseIdentity 
+parseFilterNoPipeCommaEquals = parseNot <|> parseIf <|> parseSugaredPipe <|> parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseRecDest <|> parseIdentity 
+
+parseNot :: Parser Filter
+parseNot = do 
+  _ <- symbol "not"
+  return Not
 
 parseBinaryOp :: Parser Filter
 parseBinaryOp = do
   left <- parseFilterNoEquals
-  operator <- symbol "==" <|> symbol "!=" <|> symbol "<=" <|> symbol ">=" <|> symbol "<" <|> symbol ">"
+  operator <- symbol "==" <|> symbol "!=" <|> symbol "<=" <|> symbol ">=" <|> symbol "<" <|> symbol ">" <|> symbol "and" <|> symbol "or"
   right <- parseFilterNoPipeComma
   case operator of
     "==" -> return (Equals left right) 
@@ -42,7 +47,10 @@ parseBinaryOp = do
     ">=" -> return (GeThEq left right)
     "<=" -> return (LeThEq left right)
     ">" -> return (GrTh left right)
-    _ -> return (LeTh left right)
+    "<" -> return (LeTh left right)
+    "and" -> return (And left right)
+    _ -> return (Or left right)
+    
 
 parseRecDest :: Parser Filter
 parseRecDest = do
@@ -136,7 +144,7 @@ parseComma = do
   x <- parseFilterNoComma
   xs <- some (do 
      _ <- symbol "," 
-     parseFilter)
+     parseFilterNoPipe)
   return (Comma (x:xs))
 
 parseCommaNoPipe :: Parser Filter 
@@ -144,7 +152,7 @@ parseCommaNoPipe = do
   x <- parseFilterNoPipeComma
   xs <- some (do 
      _ <- symbol "," 
-     parseFilter)
+     parseFilterNoPipeComma)
   return (Comma (x:xs))
 
 parsePipe :: Parser Filter
