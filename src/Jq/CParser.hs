@@ -15,7 +15,12 @@ parseFilterNoPipe :: Parser Filter
 parseFilterNoPipe = parseCommaNoPipe <|> parseFilterNoPipeComma
 
 parseFilterNoPipeComma :: Parser Filter 
-parseFilterNoPipeComma = parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseSugaredPipe <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseIdentity 
+parseFilterNoPipeComma = parseSugaredPipe <|> parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseRecDest <|> parseIdentity 
+
+parseRecDest :: Parser Filter
+parseRecDest = do
+  _ <- symbol ".."
+  return RecursiveDescent
 
 parseBracketedFilter :: Parser Filter
 parseBracketedFilter = do 
@@ -61,8 +66,8 @@ parseFArray = do
 
 parseSugaredPipe :: Parser Filter 
 parseSugaredPipe =  do
-    n <- parseIdentifierIndex <|> parseIdentifierIndexOpt <|> parseBracketedFilter
-    ns <- some (parseIdentifierIndex <|> parseIdentifierIndexOpt <|> parseBracketedFilterNoComma)
+    n <- parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter
+    ns <- some (parseIdentifierIndexOpt <|> parseIdentifierIndex <|>  parseBracketedFilterNoComma)
     return (Pipe (n:ns))
 
 parseIdentity :: Parser Filter

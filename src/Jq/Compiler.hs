@@ -74,10 +74,7 @@ compile (Parenthesis f) argument = compile f argument
 compile (FArray f) argument = do
     x <- compile f argument
     return [JArray x]
-    
-    -- case compile f argument of
-    -- Right x -> Right [JArray x]
-    -- Left err -> Left err
+
 compile (SimpleConstructor json) _ = Right [json]
 -- FDict
 compile (FDict []) _ = Right [JObj []]
@@ -88,6 +85,24 @@ compile (FDict (x:xs)) argument = do
     where
         keysFs = fst x
         valsFs = snd x
+
+compile RecursiveDescent JNull = Right [JNull]
+compile RecursiveDescent (JNumber x) = Right [JNumber x]
+compile RecursiveDescent (JBoolean x) = Right [JBoolean x]
+compile RecursiveDescent (JArray []) = Right [JArray []]
+compile RecursiveDescent (JObj []) = Right [JObj []]
+compile RecursiveDescent x = do
+    ys <- compile EmptyIterator x
+    yss <- recDescList ys
+    return ([x] ++ yss)
+ 
+recDescList :: [JSON] -> Either String [JSON]
+recDescList [] = Right []
+recDescList (x:xs) = case compile RecursiveDescent x of
+    Right ls -> do
+        lss <- recDescList xs
+        return (ls ++ lss)
+    Left err -> Left err
 
 cartesian :: Either String [JSON] -> Either String [JSON] -> Either String [JSON]
 cartesian mxs mys = do

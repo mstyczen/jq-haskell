@@ -11,6 +11,7 @@ data Filter = Identity
   | Comma [Filter] | Pipe [Filter]
   | Parenthesis Filter | FArray Filter | FDict [(Filter, Filter)]
   | SimpleConstructor JSON
+  | RecursiveDescent
 
 instance Show Filter where
   show (Identity) = "identity ."
