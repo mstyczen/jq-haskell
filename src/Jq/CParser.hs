@@ -1,12 +1,23 @@
 module Jq.CParser where
 
 import Parsing.Parsing
-import Jq.Filters
-import Jq.JParser
-import Jq.Json
+    ( char,
+      ident,
+      int,
+      parse,
+      symbol,
+      token,
+      Alternative((<|>), some, many),
+      Parser )
+import Jq.Filters ( Config(ConfigC), Filter(..) )
+import Jq.JParser ( parseString, parseJSON )
+import Jq.Json ( JSON(JString) )
 
 parseFilter :: Parser Filter
-parseFilter =  parseJSONConstructor <|> parsePipe <|> parseComma <|> parseFilterNoPipeComma
+parseFilter = parsePipe <|> parseComma <|> parseBinaryOp <|> parseFilterNoPipeCommaEquals
+
+parseFilterNoEquals :: Parser Filter
+parseFilterNoEquals = parseFilterNoPipeCommaEquals
 
 parseFilterNoComma :: Parser Filter
 parseFilterNoComma = parsePipeNoComma <|> parseFilterNoPipeComma
@@ -15,12 +26,50 @@ parseFilterNoPipe :: Parser Filter
 parseFilterNoPipe = parseCommaNoPipe <|> parseFilterNoPipeComma
 
 parseFilterNoPipeComma :: Parser Filter 
-parseFilterNoPipeComma = parseSugaredPipe <|> parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseRecDest <|> parseIdentity 
+parseFilterNoPipeComma = parseBinaryOp <|> parseFilterNoPipeCommaEquals
+
+parseFilterNoPipeCommaEquals :: Parser Filter 
+parseFilterNoPipeCommaEquals = parseIf <|> parseSugaredPipe <|> parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseRecDest <|> parseIdentity 
+
+parseBinaryOp :: Parser Filter
+parseBinaryOp = do
+  left <- parseFilterNoEquals
+  operator <- symbol "==" <|> symbol "!=" <|> symbol "<=" <|> symbol ">=" <|> symbol "<" <|> symbol ">"
+  right <- parseFilterNoPipeComma
+  case operator of
+    "==" -> return (Equals left right) 
+    "!=" -> return (NEquals left right)
+    ">=" -> return (GeThEq left right)
+    "<=" -> return (LeThEq left right)
+    ">" -> return (GrTh left right)
+    _ -> return (LeTh left right)
 
 parseRecDest :: Parser Filter
 parseRecDest = do
   _ <- symbol ".."
   return RecursiveDescent
+
+parseIf :: Parser Filter
+parseIf = do
+  _ <- symbol "if"
+  condition <- parseFilter
+  _ <- symbol "then"
+  thenBranch <- parseFilter
+  elseBranch <- parseSimpleElseBranch <|> parseElifBranch
+  return (If condition thenBranch elseBranch)
+
+parseSimpleElseBranch :: Parser Filter
+parseSimpleElseBranch = do
+  _ <- symbol "else"
+  elseBranch <- parseFilter
+  _ <- symbol "end"
+  return elseBranch
+
+parseElifBranch :: Parser Filter 
+parseElifBranch = do
+    _ <- symbol "el"
+    parseIf
+
 
 parseBracketedFilter :: Parser Filter
 parseBracketedFilter = do 
@@ -87,7 +136,7 @@ parseComma = do
   x <- parseFilterNoComma
   xs <- some (do 
      _ <- symbol "," 
-     parseFilterNoComma)
+     parseFilter)
   return (Comma (x:xs))
 
 parseCommaNoPipe :: Parser Filter 
@@ -95,7 +144,7 @@ parseCommaNoPipe = do
   x <- parseFilterNoPipeComma
   xs <- some (do 
      _ <- symbol "," 
-     parseFilterNoPipeComma)
+     parseFilter)
   return (Comma (x:xs))
 
 parsePipe :: Parser Filter
@@ -103,7 +152,7 @@ parsePipe = do
   x <- parseFilterNoPipe
   xs <- some (do 
      _ <- symbol "|" 
-     parseFilterNoPipe)
+     parseFilter)
   return (Pipe (x:xs))
 
 parsePipeNoComma :: Parser Filter
@@ -111,7 +160,7 @@ parsePipeNoComma = do
   x <- parseFilterNoPipeComma
   xs <- some (do 
      _ <- symbol "|" 
-     parseFilterNoPipeComma)
+     parseFilter)
   return (Pipe (x:xs))
 
 parseGenericIndexOpt :: Parser Filter

@@ -19,6 +19,33 @@ instance Show JSON where
   show (JArray xs) = showArray xs 1
   show (JObj xs) = showDict xs 1
 
+instance Eq JSON where
+  (==) (JNumber a) (JNumber b) = a==b 
+  (==) (JString a) (JString b) = a==b
+  (==) (JBoolean a) (JBoolean b) = a==b
+  (==) (JArray a) (JArray b) = a==b
+  (==) (JObj a) (JObj b) = a==b
+  (==) JNull JNull = True 
+  (==) _ _ = False
+
+instance Ord JSON where
+  (<=) (JNumber a) (JNumber b) = a<=b 
+  (<=) (JString a) (JString b) = a<=b
+  (<=) (JBoolean a) (JBoolean b) = a<=b
+  (<=) (JArray a) (JArray b) = a<=b
+  (<=) (JObj a) (JObj b) = a<=b
+  (<=) JNull JNull = True 
+  (<=) JNull _ = True
+  (<=) _ JNull = False
+  (<=) (JBoolean _) _ = True
+  (<=) _ (JBoolean _) = False
+  (<=) (JNumber _) _ = True
+  (<=) _ (JNumber _) = False
+  (<=) (JString _) _ = True
+  (<=) _ (JString _) = False
+  (<=) (JArray _) _ = True
+  (<=) _ (JArray _) = False
+
 
 showArray :: [JSON] -> Int -> String
 showArray [] _= "[]"

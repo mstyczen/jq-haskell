@@ -12,7 +12,13 @@ data Filter = Identity
   | Parenthesis Filter | FArray Filter | FDict [(Filter, Filter)]
   | SimpleConstructor JSON
   | RecursiveDescent
-
+  | Equals Filter Filter | NEquals Filter Filter
+  | GrTh Filter Filter | LeTh Filter Filter
+  | LeThEq Filter Filter | GeThEq Filter Filter
+  | If Filter Filter Filter
+  | And Filter Filter
+  | Or Filter Filter
+  | Not Filter
 instance Show Filter where
   show (Identity) = "identity ."
   -- show (Parenthesis) = "parenthesis ()"

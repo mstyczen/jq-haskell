@@ -75,7 +75,9 @@ compile (FArray f) argument = do
     x <- compile f argument
     return [JArray x]
 
+-- simple constructor
 compile (SimpleConstructor json) _ = Right [json]
+
 -- FDict
 compile (FDict []) _ = Right [JObj []]
 compile (FDict (x:xs)) argument = do
@@ -86,6 +88,7 @@ compile (FDict (x:xs)) argument = do
         keysFs = fst x
         valsFs = snd x
 
+-- recursive descent
 compile RecursiveDescent JNull = Right [JNull]
 compile RecursiveDescent (JNumber x) = Right [JNumber x]
 compile RecursiveDescent (JBoolean x) = Right [JBoolean x]
@@ -94,54 +97,51 @@ compile RecursiveDescent (JObj []) = Right [JObj []]
 compile RecursiveDescent x = do
     ys <- compile EmptyIterator x
     yss <- recDescList ys
-    return ([x] ++ yss)
- 
-recDescList :: [JSON] -> Either String [JSON]
-recDescList [] = Right []
-recDescList (x:xs) = case compile RecursiveDescent x of
-    Right ls -> do
-        lss <- recDescList xs
-        return (ls ++ lss)
-    Left err -> Left err
+    return (x : yss)
 
-cartesian :: Either String [JSON] -> Either String [JSON] -> Either String [JSON]
-cartesian mxs mys = do
-    xs <- mxs
-    ys <- mys
-    return [concatDict x y | x <-xs, y<-ys]
+-- equals and nequals
+compile (Equals left right) argument = do
+    xs <- compile left argument
+    ys <- compile right argument
+    return [JBoolean (x == y) | x <- xs, y <- ys]
 
+compile (NEquals left right) argument = do
+    xs <- compile left argument
+    ys <- compile right argument
+    return [JBoolean (x /= y) | x <- xs, y <- ys]
 
-kvpairs :: [JSON] -> [JSON] -> Either String [JSON]
-kvpairs keys values = case keysToStrings keys of
-    Right stringkeys -> Right [(JObj [(k,v)]) | k <- stringkeys, v <- values]
-    Left err -> Left err
+compile (GeThEq left right) argument = do
+    xs <- compile left argument
+    ys <- compile right argument
+    return [JBoolean (x >= y) | x <- xs, y <- ys]
 
--- kvFilterToObj :: [(JSON, JSON)] -> Either String [JSON]
--- kvFilterToObj [] = Right []
--- kvFilterToObj (x:xs) = case keysToStrings (fst x) of
+compile (LeThEq left right) argument = do
+    xs <- compile left argument
+    ys <- compile right argument
+    return [JBoolean (x <= y) | x <- xs, y <- ys]
+    
+compile (LeTh left right) argument = do
+    xs <- compile left argument
+    ys <- compile right argument
+    return [JBoolean (x < y) | x <- xs, y <- ys]
 
+compile (GrTh left right) argument = do
+    xs <- compile left argument
+    ys <- compile right argument
+    return [JBoolean (x > y) | x <- xs, y <- ys]
 
-keysToStrings :: [JSON] -> Either String [String]
-keysToStrings [] = Right []
-keysToStrings (x:xs) = case x of 
-    JString s -> do 
-        ss <- keysToStrings xs
-        return (s:ss)
-    _ -> Left "non-string dict key"
-
-
-
-
-concatDict :: JSON -> JSON -> JSON
-concatDict (JObj x) (JObj y) = JObj (x ++ y)
-
--- simple json constructor
-
-
+compile (If condition thenBranch elseBranch) argument = do
+    conditionValues <- compile condition argument
+    thenValues <- compile thenBranch argument
+    elseValues <- compile elseBranch argument
+    Right $ concat $ map (\x -> case x of 
+        JNull -> elseValues
+        (JBoolean False) -> elseValues
+        _ -> thenValues) conditionValues
+    
 
 run :: JProgram [JSON] -> JSON -> Either String [JSON]
 run p j = p j
-
 
 -- helper functions
 applySequentially :: [Filter] -> [JSON] -> Either String [JSON]
@@ -207,3 +207,36 @@ getByKeys keys xs = map (\key -> getByKey key xs) keys
 getByKey :: String -> [(String, JSON)] -> JSON
 getByKey _ [] = JNull 
 getByKey key (x:xs) = if fst x == key then snd x else getByKey key xs
+
+recDescList :: [JSON] -> Either String [JSON]
+recDescList [] = Right []
+recDescList (x:xs) = case compile RecursiveDescent x of
+    Right ls -> do
+        lss <- recDescList xs
+        return (ls ++ lss)
+    Left err -> Left err
+
+cartesian :: Either String [JSON] -> Either String [JSON] -> Either String [JSON]
+cartesian mxs mys = do
+    xs <- mxs
+    ys <- mys
+    return [concatDict x y | x <-xs, y<-ys]
+
+
+kvpairs :: [JSON] -> [JSON] -> Either String [JSON]
+kvpairs keys values = case keysToStrings keys of
+    Right stringkeys -> Right [(JObj [(k,v)]) | k <- stringkeys, v <- values]
+    Left err -> Left err
+
+
+keysToStrings :: [JSON] -> Either String [String]
+keysToStrings [] = Right []
+keysToStrings (x:xs) = case x of 
+    JString s -> do 
+        ss <- keysToStrings xs
+        return (s:ss)
+    _ -> Left "non-string dict key"
+
+
+concatDict :: JSON -> JSON -> JSON
+concatDict (JObj x) (JObj y) = JObj (x ++ y)
