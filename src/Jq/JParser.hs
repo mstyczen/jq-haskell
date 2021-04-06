@@ -1,8 +1,18 @@
 module Jq.JParser where
 
 import Parsing.Parsing
-import Jq.Json
-import Data.Char
+    ( char,
+      digit,
+      int,
+      item,
+      sat,
+      string,
+      symbol,
+      token,
+      Alternative((<|>), some, many),
+      Parser )
+import Jq.Json ( JSON(..) )
+import Data.Char ( readLitChar )
 
 -- define parsing for each
 parseJNull :: Parser JSON

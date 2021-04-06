@@ -15,14 +15,21 @@ parseFilterNoPipe :: Parser Filter
 parseFilterNoPipe = parseCommaNoPipe <|> parseFilterNoPipeComma
 
 parseFilterNoPipeComma :: Parser Filter 
-parseFilterNoPipeComma = parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseSugaredPipe <|>
-  parseEmptyIteratorOpt <|> parseEmptyIterator <|>
+parseFilterNoPipeComma = parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseSugaredPipe <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseIdentity 
+
+parseBracketedFilter :: Parser Filter
+parseBracketedFilter = do 
+  _ <- token . char $ '.'
+  parseBracketedFilterNoComma
+  
+
+parseBracketedFilterNoComma :: Parser Filter
+parseBracketedFilterNoComma = parseEmptyIteratorOpt <|> parseEmptyIterator <|>
   parseObjectValueIteratorOpt <|> parseObjectValueIterator <|> 
   parseArrayIteratorOpt <|> parseArrayIterator <|>
   parseArraySliceOpt <|> parseArraySlice 
   <|> parseArrayIndexOpt <|> parseArrayIndex 
-  <|> parseOptIndex <|> parseIndex 
-  <|> parseIdentity
+  <|> parseGenericIndexOpt <|> parseGenericIndex
 
 parseFDict :: Parser Filter
 parseFDict = do
@@ -54,8 +61,8 @@ parseFArray = do
 
 parseSugaredPipe :: Parser Filter 
 parseSugaredPipe =  do
-    n <- parseOptIndex <|> parseIndex
-    ns <- some (parseOptIndex <|> parseIndex)
+    n <- parseIdentifierIndex <|> parseIdentifierIndexOpt <|> parseBracketedFilter
+    ns <- some (parseIdentifierIndex <|> parseIdentifierIndexOpt <|> parseBracketedFilterNoComma)
     return (Pipe (n:ns))
 
 parseIdentity :: Parser Filter
@@ -102,14 +109,17 @@ parsePipeNoComma = do
      parseFilterNoPipeComma)
   return (Pipe (x:xs))
 
-parseIndex :: Parser Filter
-parseIndex = do
-  name <- parseIdentifierIndex <|> parseGenericIndex
-  return (Indexing name)
+parseGenericIndexOpt :: Parser Filter
+parseGenericIndexOpt = do
+  _ <- symbol "["
+  name <- parseString
+  _ <- symbol "]"
+  return (IndexingOpt name)
 
-parseOptIndex :: Parser Filter
-parseOptIndex = do
-  name <- parseIdentifierIndex <|> parseGenericIndex
+parseIdentifierIndexOpt :: Parser Filter
+parseIdentifierIndexOpt = do
+  _ <- token . char $ '.'
+  name <- ident <|> parseString
   _ <- char '?'
   return (IndexingOpt  name)
   
@@ -135,23 +145,21 @@ parseArraySliceOpt = do
   _ <- symbol "?"
   return (ArraySliceOpt from to)
 
-parseGenericIndex :: Parser String 
+parseGenericIndex :: Parser Filter 
 parseGenericIndex = do
-  _ <- string ".["
+  _ <- symbol "["
   name <- parseString
   _ <- symbol "]"
-  return name
+  return (Indexing name)
 
 parseEmptyIterator :: Parser Filter 
 parseEmptyIterator = do
-  _ <- symbol "."
   _ <- symbol "["
   _ <- symbol "]"
   return EmptyIterator
 
 parseEmptyIteratorOpt :: Parser Filter 
 parseEmptyIteratorOpt = do
-  _ <- symbol "."
   _ <- symbol "["
   _ <- symbol "]"
   _ <- symbol "?"
@@ -192,7 +200,6 @@ parseConfig s = case s of
 -- helper functions
 parseArrayIndexValue :: Parser Int 
 parseArrayIndexValue = do
-  _ <- token . char $ '.'
   _ <- symbol "["
   n <- int
   _ <- symbol "]"
@@ -200,7 +207,6 @@ parseArrayIndexValue = do
 
 parseArrayIteratorIndices :: Parser [Int]
 parseArrayIteratorIndices = do
-  _ <- token . char $ '.'
   _ <- symbol "["
   n <- int
   ns <- many (do 
@@ -211,7 +217,6 @@ parseArrayIteratorIndices = do
 
 parseObjectValueIteratorKeys :: Parser [String]
 parseObjectValueIteratorKeys = do
-  _ <- token . char $ '.'
   _ <- symbol "["
   n <- parseString
   ns <- many (do 
@@ -222,7 +227,6 @@ parseObjectValueIteratorKeys = do
 
 parseArraySliceBounds :: Parser (Int, Int)
 parseArraySliceBounds = do
-  _ <- token . char $ '.'
   _ <- symbol "["
   from <- int <|> return 0
   _ <- symbol ":"
@@ -230,11 +234,11 @@ parseArraySliceBounds = do
   _ <- symbol "]"
   return (from, to)
 
-parseIdentifierIndex :: Parser String 
+parseIdentifierIndex :: Parser Filter 
 parseIdentifierIndex = do
   _ <- token . char $ '.'
   name <- ident <|> parseString
-  return name
+  return (Indexing name)
 
 parseJSONConstructor :: Parser Filter 
 parseJSONConstructor = do
