@@ -29,12 +29,25 @@ parseFilterNoPipeComma :: Parser Filter
 parseFilterNoPipeComma = parseBinaryOp <|> parseFilterNoPipeCommaEquals
 
 parseFilterNoPipeCommaEquals :: Parser Filter 
-parseFilterNoPipeCommaEquals = parseNot <|> parseIf <|> parseSugaredPipe <|> parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseRecDest <|> parseIdentity 
+parseFilterNoPipeCommaEquals = parseTry <|> parseNot <|> parseIf <|> parseSugaredPipe <|> parseJSONConstructor <|> parseFArray <|> parseFDict <|> parseParenthesis <|> parseIdentifierIndexOpt <|> parseIdentifierIndex <|> parseBracketedFilter <|> parseRecDest <|> parseIdentity 
 
 parseNot :: Parser Filter
 parseNot = do 
   _ <- symbol "not"
   return Not
+
+parseTry :: Parser Filter 
+parseTry = do 
+  _ <- symbol "try"
+  try <- parseFilter
+  x <- symbol "catch" <|> return "no_catch"
+  if x=="catch" then do
+    catch <- parseFilter
+    return (Try try catch)
+  else
+    return (Try try Empty)
+  
+
 
 parseBinaryOp :: Parser Filter
 parseBinaryOp = do

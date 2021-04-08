@@ -70,6 +70,13 @@ compile (Pipe fs) argument = applySequentially fs [argument]
 -- parenthesis
 compile (Parenthesis f) argument = compile f argument
 
+-- empty
+compile Empty _ = return []
+
+compile (Try try catch) argument = case compile try argument of
+    Left _ -> compile catch argument
+    Right xs -> Right xs
+
 -- FArray
 compile (FArray f) argument = do
     x <- compile f argument
